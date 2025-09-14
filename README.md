@@ -77,22 +77,24 @@ Deploy easily using Docker:
 # Build the image
 docker build -t face-app .
 ```
-# Load the image
+# Pull the prebuilt image from Docker Hub
 ```bash
-docker load face-app.tar
+docker pull huzaifa212/face-app:latest
 ```
-# Check image
+# Run the container (port 8000 → 8000)
+```bash
+docker run -p 8000:8000 huzaifa212/face-app:latest
+```
+
+# Check available images
 ```bash
 docker images
 ```
-# Run the container
-```bash
-docker run -p 8000:8000 --env-file .env ai-attendance
-```
-# list the running containers
+# List running containers
 ```bash
 docker ps
 ```
+
 # Running containers and paste this url
 ```bash
 http://127.0.0.1:8000
