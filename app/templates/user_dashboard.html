@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+
+{% block title %}User Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Welcome Header -->
+    <div class="dashboard-header">
+        <h1 class="welcome-title">Welcome, {{ user.name }}</h1>
+        <p class="welcome-subtitle">User Dashboard - Manage employee registration and attendance</p>
+    </div>
+
+    <!-- Action Cards -->
+    <div class="dashboard-grid">
+        <!-- Register Employee Card -->
+        <div class="dashboard-card">
+            <div class="card-icon register-icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="card-content">
+                <h3 class="card-title">Register Employee</h3>
+                <p class="card-description">Add new employees to the attendance system</p>
+            </div>
+            <div class="card-action">
+                <a href="/admin/register" class="action-btn primary">
+                    <span>Register Employee</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Mark Attendance Card -->
+        <div class="dashboard-card">
+            <div class="card-icon attendance-icon">
+                <i class="fas fa-camera"></i>
+            </div>
+            <div class="card-content">
+                <h3 class="card-title">Mark Attendance</h3>
+                <p class="card-description">Use face recognition to mark attendance</p>
+            </div>
+            <div class="card-action">
+                <a href="/attendance" class="action-btn success">
+                    <span>Mark Attendance</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Section -->
+    <div class="stats-section">
+        <div class="stats-card">
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number">{{ employee_count | default('--') }}</div>
+                    <div class="stat-label">Total Employees</div>
+                </div>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="currentTime">--:--</div>
+                    <div class="stat-label">Current Time</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .dashboard-container {
+        max-width: 800px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+    }
+
+    /* Header Section */
+    .dashboard-header {
+        text-align: center;
+        margin-bottom: 8px;
+    }
+
+    .welcome-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+        letter-spacing: -0.025em;
+    }
+
+    .welcome-subtitle {
+        font-size: 15px;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    /* Dashboard Grid */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+    /* Dashboard Cards */
+    .dashboard-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary);
+    }
+
+    .dashboard-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }
+
+    .dashboard-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    /* Card Icons */
+    .card-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+    }
+
+    .register-icon {
+        background: linear-gradient(135deg, #059669, #10b981);
+    }
+
+    .attendance-icon {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
+
+    /* Card Content */
+    .card-content {
+        flex: 1;
+    }
+
+    .card-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+    }
+
+    .card-description {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Action Buttons */
+    .card-action {
+        margin-top: auto;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        border-radius: var(--radius);
+        transition: all 0.2s ease;
+        gap: 8px;
+    }
+
+    .action-btn.primary {
+        background: var(--primary);
+        color: white;
+        border: 1px solid var(--primary);
+    }
+
+    .action-btn.primary:hover {
+        background: var(--primary-hover);
+        border-color: var(--primary-hover);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .action-btn.success {
+        background: #059669;
+        color: white;
+        border: 1px solid #059669;
+    }
+
+    .action-btn.success:hover {
+        background: #047857;
+        border-color: #047857;
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .action-btn i {
+        font-size: 12px;
+        transition: transform 0.2s ease;
+    }
+
+    .action-btn:hover i {
+        transform: translateX(2px);
+    }
+
+    /* Stats Section */
+    .stats-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 8px;
+    }
+
+    .stats-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--bg-accent);
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary);
+        font-size: 16px;
+    }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-number {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            gap: 24px;
+        }
+
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .dashboard-card {
+            padding: 20px;
+        }
+
+        .welcome-title {
+            font-size: 24px;
+        }
+
+        .card-title {
+            font-size: 18px;
+        }
+
+        .stats-section {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dashboard-card {
+            padding: 16px;
+            gap: 16px;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+        }
+
+        .stats-card {
+            padding: 16px;
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 14px;
+        }
+
+        .stat-number {
+            font-size: 18px;
+        }
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        .dashboard-card,
+        .action-btn,
+        .dashboard-card::before {
+            transition: none;
+        }
+
+        .dashboard-card:hover {
+            transform: none;
+        }
+
+        .action-btn:hover {
+            transform: none;
+        }
+    }
+</style>
+
+<script>
+    // Update current time
+    function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+        document.getElementById('currentTime').textContent = timeString;
+    }
+
+    // Initialize time and update every second
+    setInterval(updateTime, 1000);
+    updateTime();
+</script>
+
+{% endblock %}

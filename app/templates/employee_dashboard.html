@@ -1,0 +1,23 @@
+<!-- app/templates/employee_dashboard.html - یہ نئی file بنائیں -->
+
+{% extends "base.html" %}
+
+{% block title %}Employee Dashboard{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h2 class="page-title">Welcome Employee!</h2>
+    <p class="page-subtitle">You will be redirected to attendance page...</p>
+    
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+<script>
+    // Auto redirect to attendance page after 2 seconds
+    setTimeout(() => {
+        window.location.href = '/attendance';
+    }, 2000);
+</script>
+{% endblock %}

@@ -1,0 +1,765 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<link rel="icon" type="image/x-icon" href="/static/immigration.png">
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="dashboard-header">
+        <h1 class="page-title">Registered Employees</h1>
+        <p class="page-subtitle">Manage and view all registered employees in the system</p>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar-card">
+        <div class="primary-actions">
+            <a href="/admin/register" class="action-btn primary">
+                <i class="fas fa-user-plus"></i>
+                <span>Register Employee</span>
+            </a>
+        </div>
+        
+        <div class="secondary-actions">
+            <div class="export-group">
+                <button id="btnCopy" class="action-btn outline">
+                    <i class="fas fa-copy"></i>
+                    <span>Copy</span>
+                </button>
+                <button id="btnCSV" class="action-btn outline">
+                    <i class="fas fa-file-csv"></i>
+                    <span>CSV</span>
+                </button>
+                <button id="btnExcel" class="action-btn outline">
+                    <i class="fas fa-file-excel"></i>
+                    <span>Excel</span>
+                </button>
+                <button id="btnPDF" class="action-btn outline">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>PDF</span>
+                </button>
+                <button id="btnPrint" class="action-btn outline">
+                    <i class="fas fa-print"></i>
+                    <span>Print</span>
+                </button>
+            </div>
+            
+            <button id="toggleDelete" class="action-btn danger-outline">
+                <i class="fas fa-trash-alt"></i>
+                <span>Bulk Delete</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+
+    <form id="deleteForm" action="/admin/delete-selected-employees" method="post" onsubmit="return confirm('Are you sure you want to delete the selected employees? This action cannot be undone.');">
+        <div class="table-card">
+            {% if users %}
+            <div class="data-table-wrapper">
+                <table id="userTable" class="modern-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th class="delete-column" style="display: none;">
+                                <input type="checkbox" id="selectAll" class="custom-checkbox">
+                            </th>
+                            <th>Employee Name</th>
+                            <th>Email Address</th>
+                            <th class="actions-column">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td class="delete-column" style="display: none;">
+                                <input type="checkbox" name="user_ids" value="{{ user._id }}" class="custom-checkbox row-checkbox">
+                            </td>
+                            <td class="employee-name">
+                                <div class="employee-info">
+                                    <div class="employee-avatar">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <span>{{ user.name }}</span>
+                                </div>
+                            </td>
+                            <td class="employee-email">{{ user.email }}</td>
+                            <td class="actions-cell">
+                                <div class="action-buttons">
+                                    <a href="/admin/update/{{ user._id }}" class="btn-action edit" title="Edit Employee">
+                                        <i class="fas fa-edit"></i>
+                                        <span>Edit</span>
+                                    </a>
+                                    <a href="/admin/delete/{{ user._id }}" class="btn-action delete"
+                                       onclick="return confirm('Are you sure you want to delete {{ user.name }}? This action cannot be undone.');" title="Delete Employee">
+                                        <i class="fas fa-trash"></i>
+                                        <span>Delete</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bulk Delete Actions -->
+            <div id="deleteSelectedWrapper" style="display: none;" class="bulk-actions">
+                <div class="bulk-info">
+                    <div class="selection-badge">
+                        <span id="selectedCount">0</span> selected
+                    </div>
+                </div>
+                <button type="submit" class="action-btn danger">
+                    <i class="fas fa-trash-alt"></i>
+                    <span>Delete Selected</span>
+                </button>
+            </div>
+
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3>No Employees Found</h3>
+                <p>Get started by registering your first employee in the system.</p>
+                <a href="/admin/register" class="action-btn primary large">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Register Employee</span>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- jQuery and DataTables JS -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+<script>
+    let table;
+
+    $(document).ready(function () {
+        table = $('#userTable').DataTable({
+            dom: 'Bfrtip',
+            buttons: [
+                { extend: 'copy', title: 'Registered Employees', className: 'd-none' },
+                { extend: 'csv', title: 'Registered Employees', className: 'd-none' },
+                { extend: 'excel', title: 'Registered Employees', className: 'd-none' },
+                { extend: 'pdf', title: 'Registered Employees', className: 'd-none' },
+                { extend: 'print', title: 'Registered Employees', className: 'd-none' }
+            ],
+            pageLength: 10,
+            responsive: true,
+            language: {
+                search: "Search employees:",
+                lengthMenu: "Show _MENU_ employees per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ employees",
+                emptyTable: "No employees found",
+                zeroRecords: "No matching employees found"
+            },
+            order: [[1, 'asc']]
+        });
+
+        // Export button handlers
+        $('#btnCopy').click(() => table.button(0).trigger());
+        $('#btnCSV').click(() => table.button(1).trigger());
+        $('#btnExcel').click(() => table.button(2).trigger());
+        $('#btnPDF').click(() => table.button(3).trigger());
+        $('#btnPrint').click(() => table.button(4).trigger());
+
+        // Toggle delete checkboxes
+        $('#toggleDelete').click(function () {
+            $('.delete-column').toggle();
+            $('#deleteSelectedWrapper').toggle();
+            $(this).toggleClass('active');
+            updateSelectedCount();
+        });
+
+        // Select all checkbox
+        $('#selectAll').change(function() {
+            $('.row-checkbox').prop('checked', this.checked);
+            updateSelectedCount();
+        });
+
+        // Individual checkbox handler
+        $(document).on('change', '.row-checkbox', function() {
+            updateSelectAllState();
+            updateSelectedCount();
+        });
+
+        function updateSelectAllState() {
+            const totalCheckboxes = $('.row-checkbox').length;
+            const checkedCheckboxes = $('.row-checkbox:checked').length;
+            $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+        }
+
+        function updateSelectedCount() {
+            const count = $('.row-checkbox:checked').length;
+            $('#selectedCount').text(count);
+        }
+    });
+</script>
+
+<style>
+    /* Inheriting base theme colors from base.html */
+    :root {
+        --primary: #000000;
+        --primary-hover: #1a1a1a;
+        --secondary: #6b7280;
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-accent: #f1f5f9;
+        --border: #e5e7eb;
+        --border-light: #f3f4f6;
+        --text-primary: #111827;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
+        --success: #10b981;
+        --success-hover: #059669;
+        --error: #ef4444;
+        --error-hover: #dc2626;
+        --warning: #f59e0b;
+        --warning-hover: #d97706;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        --radius: 8px;
+        --radius-lg: 12px;
+        --radius-xl: 16px;
+    }
+
+    /* Dashboard Container */
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    /* Dashboard Header */
+    .dashboard-header {
+        text-align: center;
+        margin-bottom: 8px;
+    }
+
+    .page-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+        letter-spacing: -0.025em;
+    }
+
+    .page-subtitle {
+        font-size: 15px;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    /* Action Bar Card */
+    .action-bar-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 20px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        box-shadow: var(--shadow-sm);
+        flex-wrap: wrap;
+    }
+
+    .primary-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .secondary-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .export-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    /* Action Buttons - Updated to match black theme */
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        border-radius: var(--radius);
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        white-space: nowrap;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .action-btn.primary {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .action-btn.primary:hover {
+        background: var(--primary-hover);
+        border-color: var(--primary-hover);
+        color: white;
+    }
+
+    .action-btn.outline {
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        border-color: var(--border);
+    }
+
+    .action-btn.outline:hover {
+        background: var(--bg-accent);
+        color: var(--text-primary);
+        border-color: var(--text-secondary);
+    }
+
+    .action-btn.danger {
+        background: var(--error);
+        color: white;
+        border-color: var(--error);
+    }
+
+    .action-btn.danger:hover {
+        background: var(--error-hover);
+        color: white;
+    }
+
+    .action-btn.danger-outline {
+        background: var(--bg-primary);
+        color: var(--error);
+        border-color: var(--error);
+    }
+
+    .action-btn.danger-outline:hover,
+    .action-btn.danger-outline.active {
+        background: var(--error);
+        color: white;
+    }
+
+    .action-btn.large {
+        padding: 12px 20px;
+        font-size: 16px;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .data-table-wrapper {
+        overflow-x: auto;
+    }
+
+    /* Modern Table Styling */
+    .modern-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        background: white;
+    }
+
+    .modern-table thead th {
+        background: var(--bg-accent);
+        color: var(--text-primary);
+        font-weight: 600;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        white-space: nowrap;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modern-table tbody td {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
+
+    .modern-table tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    .modern-table tbody tr:hover {
+        background: var(--bg-secondary);
+        transform: scale(1.001);
+    }
+
+    .modern-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Employee Info Styling - Updated avatar to black theme */
+    .employee-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .employee-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .employee-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .employee-email {
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
+    .actions-column {
+        text-align: center;
+        width: 180px;
+    }
+
+    .actions-cell {
+        text-align: center;
+    }
+
+    /* Action Buttons in Table - Updated colors */
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        text-decoration: none;
+        border-radius: var(--radius);
+        border: 1px solid;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .btn-action.edit {
+        background: var(--bg-primary);
+        color: var(--success);
+        border-color: var(--success);
+    }
+
+    .btn-action.edit:hover {
+        background: var(--success);
+        color: white;
+    }
+
+    .btn-action.delete {
+        background: var(--bg-primary);
+        color: var(--error);
+        border-color: var(--error);
+    }
+
+    .btn-action.delete:hover {
+        background: var(--error);
+        color: white;
+    }
+
+    /* Custom Checkbox - Updated to black theme */
+    .custom-checkbox {
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--border);
+        border-radius: 4px;
+        cursor: pointer;
+        position: relative;
+        appearance: none;
+        transition: all 0.2s ease;
+    }
+
+    .custom-checkbox:checked {
+        background: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .custom-checkbox:checked::after {
+        content: '✓';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    /* Bulk Actions */
+    .bulk-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border);
+    }
+
+    .bulk-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .selection-badge {
+        background: var(--primary);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 80px 32px;
+        color: var(--text-secondary);
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
+        border-radius: 50%;
+        background: var(--bg-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 32px;
+    }
+
+    .empty-state h3 {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 12px 0;
+    }
+
+    .empty-state p {
+        font-size: 16px;
+        margin: 0 0 32px 0;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.6;
+    }
+
+    /* DataTables Customization - Updated to black theme */
+    .dataTables_wrapper {
+        padding: 20px;
+    }
+
+    .dataTables_wrapper .dataTables_filter {
+        margin-bottom: 20px;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 10px 12px;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .dataTables_wrapper .dataTables_filter input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .dataTables_wrapper .dataTables_length select {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 8px 10px;
+        font-size: 14px;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 8px 12px;
+        margin: 0 2px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text-secondary) !important;
+        background: var(--bg-primary) !important;
+        transition: all 0.2s ease;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: var(--bg-accent) !important;
+        border-color: var(--text-secondary);
+        color: var(--text-primary) !important;
+        transform: translateY(-1px);
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: var(--primary) !important;
+        border-color: var(--primary);
+        color: white !important;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .action-bar-card {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 16px;
+        }
+
+        .primary-actions,
+        .secondary-actions {
+            justify-content: center;
+        }
+
+        .export-group {
+            justify-content: center;
+        }
+
+        .action-btn {
+            font-size: 13px;
+            padding: 8px 12px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .btn-action {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .bulk-actions {
+            flex-direction: column;
+            gap: 12px;
+            text-align: center;
+        }
+
+        .employee-info {
+            gap: 8px;
+        }
+
+        .employee-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 12px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .page-title {
+            font-size: 24px;
+        }
+
+        .empty-state {
+            padding: 60px 16px;
+        }
+
+        .empty-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+        }
+
+        .action-bar-card {
+            padding: 16px 20px;
+        }
+
+        .modern-table thead th,
+        .modern-table tbody td {
+            padding: 12px 16px;
+        }
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        .action-btn,
+        .btn-action,
+        .modern-table tbody tr,
+        .custom-checkbox {
+            transition: none;
+        }
+
+        .action-btn:hover,
+        .btn-action:hover {
+            transform: none;
+        }
+
+        .modern-table tbody tr:hover {
+            transform: none;
+        }
+    }
+
+    /* Focus States - Updated to black theme */
+    .action-btn:focus,
+    .btn-action:focus,
+    .custom-checkbox:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
+</style>
+{% endblock %}

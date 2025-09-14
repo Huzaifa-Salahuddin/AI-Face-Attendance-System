@@ -1,0 +1,654 @@
+{% extends "base.html" %}
+
+{% block title %}Register Employee{% endblock %}
+
+{% block content %}
+<div class="registration-container">
+    <div class="registration-header">
+        <h2 class="page-title">Register New Employee</h2>
+        <p class="page-subtitle">Complete the form and capture a profile photo to register a new employee</p>
+    </div>
+
+    <div class="registration-form-container">
+        <form id="register-form" method="post" enctype="multipart/form-data">
+            <div class="form-section">
+                <h3 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24">
+                        <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                    </svg>
+                    Employee Information
+                </h3>
+                
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" required placeholder="Enter employee's full name">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="Enter employee's email address">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24">
+                        <path d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/>
+                    </svg>
+                    Profile Photo Capture
+                </h3>
+
+                <div class="camera-container">
+                    <div class="video-wrapper">
+                        <video id="video" autoplay playsinline></video>
+                        <div class="camera-overlay">
+                            <div class="face-guide"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="camera-status" id="camera-status">
+                        <div class="status-indicator loading"></div>
+                        <span>Initializing camera...</span>
+                    </div>
+                </div>
+
+                <div class="camera-controls">
+                    <button type="button" id="capture-btn" onclick="capture()" disabled>
+                        <svg class="btn-icon" viewBox="0 0 24 24">
+                            <path d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/>
+                        </svg>
+                        Capture Photo & Register
+                    </button>
+                    
+                    <button type="button" id="retake-btn" onclick="retakePhoto()" style="display: none;">
+                        <svg class="btn-icon" viewBox="0 0 24 24">
+                            <path d="M12,6V9L16,5L12,1V4A8,8 0 0,0 4,12C4,13.57 4.46,15.03 5.24,16.26L6.7,14.8C6.25,13.97 6,13 6,12A6,6 0 0,1 12,6M18.76,7.74L17.3,9.2C17.74,10.04 18,11 18,12A6,6 0 0,1 12,18V15L8,19L12,23V20A8,8 0 0,0 20,12C20,10.43 19.54,8.97 18.76,7.74Z"/>
+                        </svg>
+                        Retake Photo
+                    </button>
+                </div>
+
+                <canvas id="canvas" style="display:none;"></canvas>
+                
+                <div class="preview-container" id="preview-container" style="display: none;">
+                    <h4>Captured Photo:</h4>
+                    <img id="preview-img" alt="Captured photo preview">
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>Processing registration...</p>
+    </div>
+</div>
+
+<style>
+    :root {
+        --primary: #000000;
+        --primary-hover: #1a1a1a;
+        --secondary: #6b7280;
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-accent: #f1f5f9;
+        --border: #e5e7eb;
+        --border-light: #f3f4f6;
+        --text-primary: #111827;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
+        --success: #10b981;
+        --error: #ef4444;
+        --warning: #f59e0b;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        --radius: 8px;
+        --radius-lg: 12px;
+        --radius-xl: 16px;
+    }
+
+    .registration-container {
+        max-width: 800px;
+        margin: 0 auto;
+        position: relative;
+    }
+
+    .registration-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+        letter-spacing: -0.025em;
+    }
+
+    .page-subtitle {
+        font-size: 15px;
+        color: var(--text-secondary);
+        margin: 0;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.5;
+    }
+    
+    .registration-form-container {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 32px;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .form-section {
+        margin-bottom: 32px;
+    }
+
+    .form-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 20px 0;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .section-icon {
+        width: 20px;
+        height: 20px;
+        fill: var(--primary);
+        flex-shrink: 0;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: var(--text-primary);
+        font-size: 14px;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 14px;
+        transition: all 0.2s ease;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+    }
+
+    .form-group input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .camera-container {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .video-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        background: #000;
+        box-shadow: var(--shadow-md);
+    }
+
+    #video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .camera-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    .face-guide {
+        width: 180px;
+        height: 220px;
+        border: 2px solid rgba(0, 0, 0, 0.6);
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.05);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.05); opacity: 0.4; }
+        100% { transform: scale(1); opacity: 0.8; }
+    }
+
+    .camera-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 16px;
+        justify-content: center;
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+
+    .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--success);
+    }
+
+    .status-indicator.loading {
+        background: var(--warning);
+        animation: blink 1s infinite;
+    }
+
+    .status-indicator.error {
+        background: var(--error);
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    .camera-controls {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 24px;
+        flex-wrap: wrap;
+    }
+
+    .camera-controls button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 180px;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    #capture-btn {
+        background: var(--primary);
+        color: white;
+        border: 1px solid var(--primary);
+    }
+
+    #capture-btn:hover:not(:disabled) {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    #capture-btn:disabled {
+        background: var(--text-muted);
+        color: white;
+        cursor: not-allowed;
+        border-color: var(--text-muted);
+    }
+
+    #retake-btn {
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+    }
+
+    #retake-btn:hover {
+        background: var(--bg-accent);
+        color: var(--text-primary);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-icon {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
+        flex-shrink: 0;
+    }
+
+    .preview-container {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .preview-container h4 {
+        margin: 0 0 16px 0;
+        color: var(--text-primary);
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    #preview-img {
+        max-width: 200px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-light);
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        color: white;
+    }
+
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top: 3px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .loading-overlay p {
+        font-size: 16px;
+        font-weight: 500;
+        margin: 0;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .registration-form-container {
+            padding: 24px 20px;
+        }
+
+        .camera-container {
+            padding: 20px 16px;
+        }
+
+        .video-wrapper {
+            max-width: 320px;
+        }
+
+        .face-guide {
+            width: 150px;
+            height: 180px;
+        }
+
+        .camera-controls {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .camera-controls button {
+            width: 100%;
+            max-width: 280px;
+        }
+
+        .page-title {
+            font-size: 24px;
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .registration-form-container {
+            padding: 20px 16px;
+        }
+
+        .camera-container {
+            padding: 16px 12px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            gap: 8px;
+        }
+
+        .section-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        .video-wrapper {
+            max-width: 280px;
+        }
+
+        .face-guide {
+            width: 120px;
+            height: 150px;
+        }
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        .face-guide,
+        .status-indicator.loading,
+        .loading-spinner {
+            animation: none;
+        }
+
+        .camera-controls button:hover {
+            transform: none;
+        }
+    }
+
+    /* Focus States */
+    .camera-controls button:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
+
+    .form-group input:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
+</style>
+
+<script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const captureBtn = document.getElementById("capture-btn");
+    const retakeBtn = document.getElementById("retake-btn");
+    const cameraStatus = document.getElementById("camera-status");
+    const previewContainer = document.getElementById("preview-container");
+    const previewImg = document.getElementById("preview-img");
+    const loadingOverlay = document.getElementById("loading-overlay");
+
+    let stream = null;
+
+    // Initialize camera
+    async function initCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: 'user'
+                } 
+            });
+            
+            video.srcObject = stream;
+            
+            // Update status when video is ready
+            video.addEventListener('loadedmetadata', () => {
+                cameraStatus.innerHTML = `
+                    <div class="status-indicator"></div>
+                    <span>Camera ready - Position your face in the guide</span>
+                `;
+                captureBtn.disabled = false;
+                
+                // Set canvas dimensions to match video
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            });
+            
+        } catch (err) {
+            console.error('Camera access error:', err);
+            cameraStatus.innerHTML = `
+                <div class="status-indicator error"></div>
+                <span>Camera access denied. Please allow camera access and refresh the page.</span>
+            `;
+            captureBtn.disabled = true;
+        }
+    }
+
+    function capture() {
+        if (!stream) return;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Show preview
+        canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            previewImg.src = url;
+            previewContainer.style.display = 'block';
+        }, "image/jpeg", 0.8);
+
+        // Hide video, show retake button
+        video.style.display = 'none';
+        captureBtn.style.display = 'none';
+        retakeBtn.style.display = 'flex';
+        
+        // Stop video stream
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+
+        // Process registration
+        processRegistration();
+    }
+
+    function retakePhoto() {
+        // Reset UI
+        video.style.display = 'block';
+        captureBtn.style.display = 'flex';
+        retakeBtn.style.display = 'none';
+        previewContainer.style.display = 'none';
+        
+        // Restart camera
+        initCamera();
+    }
+
+    function processRegistration() {
+        const formData = new FormData(document.getElementById("register-form"));
+        const nameInput = document.getElementById("name");
+        const emailInput = document.getElementById("email");
+        
+        // Validate form
+        if (!nameInput.value.trim() || !emailInput.value.trim()) {
+            alert("Please fill in all required fields before capturing the photo.");
+            retakePhoto();
+            return;
+        }
+
+        canvas.toBlob(function(blob) {
+            formData.append("image", blob, "face.jpg");
+            
+            // Show loading
+            loadingOverlay.style.display = 'flex';
+            
+            fetch("/admin/register", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => {
+                loadingOverlay.style.display = 'none';
+                
+                if (response.ok) {
+                    // Success - show success message and redirect
+                    alert("Employee registered successfully!");
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    } else {
+                        window.location.href = "/admin";
+                    }
+                } else {
+                    throw new Error('Registration failed');
+                }
+            })
+            .catch(error => {
+                loadingOverlay.style.display = 'none';
+                console.error('Registration error:', error);
+                alert("Face registration failed. Please try again.");
+                retakePhoto();
+            });
+        }, "image/jpeg", 0.8);
+    }
+
+    // Initialize camera when page loads
+    document.addEventListener('DOMContentLoaded', initCamera);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+    });
+</script>
+{% endblock %}

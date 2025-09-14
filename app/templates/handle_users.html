@@ -1,0 +1,681 @@
+{% extends "base.html" %}
+
+{% block title %}Handle Users and Admin{% endblock %}
+
+{% block content %}
+<div class="users-container">
+    <div class="page-header">
+        <h1 class="page-title">Handle Users and Admin</h1>
+        <p class="page-subtitle">Manage system users and administrators with full control</p>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions-section">
+        <div class="actions-group">
+            <a href="/admin/add-user" class="btn btn-primary">
+                <i class="fas fa-user-plus btn-icon"></i>
+                <span>Add User/Admin</span>
+            </a>
+        </div>
+        
+        <div class="export-group">
+            <button id="btnCopy" class="btn btn-secondary">
+                <i class="fas fa-copy btn-icon"></i>
+                <span>Copy</span>
+            </button>
+            <button id="btnCSV" class="btn btn-secondary">
+                <i class="fas fa-file-csv btn-icon"></i>
+                <span>CSV</span>
+            </button>
+            <button id="btnExcel" class="btn btn-secondary">
+                <i class="fas fa-file-excel btn-icon"></i>
+                <span>Excel</span>
+            </button>
+            <button id="btnPDF" class="btn btn-secondary">
+                <i class="fas fa-file-pdf btn-icon"></i>
+                <span>PDF</span>
+            </button>
+            <button id="btnPrint" class="btn btn-secondary">
+                <i class="fas fa-print btn-icon"></i>
+                <span>Print</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+
+    <div class="table-card">
+        {% if admin_users %}
+        <div class="table-wrapper">
+            <table id="userTable" class="users-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email Address</th>
+                        <th>Type</th>
+                        <th>Created At</th>
+                        <th class="actions-column">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in admin_users %}
+                    <tr>
+                        <td class="name-cell">
+                            <div class="user-info">
+                                <div class="user-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <span class="user-name">{{ user.name }}</span>
+                            </div>
+                        </td>
+                        <td class="email-cell">{{ user.email }}</td>
+                        <td class="type-cell">
+                            {% if user.type == "Admin" %}
+                                <span class="user-badge admin-badge">
+                                    <i class="fas fa-crown badge-icon"></i>
+                                    Admin
+                                </span>
+                            {% else %}
+                                <span class="user-badge user-badge-type">
+                                    <i class="fas fa-user badge-icon"></i>
+                                    User
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="date-cell">{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'N/A' }}</td>
+                        <td class="actions-cell">
+                            <div class="action-buttons">
+                                <a href="/admin/update-user/{{ user._id }}" class="action-btn update-btn" title="Update User">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                
+                                {% if user.type == "User" %}
+                                    <a href="/admin/make-admin/{{ user._id }}" class="action-btn promote-btn" 
+                                       title="Make Admin"
+                                       onclick="return confirm('Make {{ user.name }} an Admin?');">
+                                        <i class="fas fa-crown"></i>
+                                    </a>
+                                {% elif user.type == "Admin" and not user.is_default %}
+                                    <a href="/admin/make-user/{{ user._id }}" class="action-btn demote-btn"
+                                       title="Make User"
+                                       onclick="return confirm('Make {{ user.name }} a regular User?');">
+                                        <i class="fas fa-user-minus"></i>
+                                    </a>
+                                {% endif %}
+                                
+                                {% if not user.is_default %}
+                                    <a href="/admin/delete-user/{{ user._id }}" class="action-btn delete-btn"
+                                       title="Delete User"
+                                       onclick="return confirm('⚠️ Are you sure you want to delete {{ user.name }}?');">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="protection-badge" title="Protected User">
+                                        <i class="fas fa-shield-alt"></i>
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3 class="empty-title">No Users Found</h3>
+            <p class="empty-message">There are no users in the system yet. Add your first user to get started.</p>
+            <a href="/admin/add-user" class="btn btn-primary">
+                <i class="fas fa-user-plus btn-icon"></i>
+                <span>Add First User</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- jQuery and DataTables JS -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+<script>
+    let table;
+
+    $(document).ready(function () {
+        table = $('#userTable').DataTable({
+            dom: 'Bfrtip',
+            buttons: [
+                { extend: 'copy', title: 'Users and Admin', className: 'd-none' },
+                { extend: 'csv', title: 'Users and Admin', className: 'd-none' },
+                { extend: 'excel', title: 'Users and Admin', className: 'd-none' },
+                { extend: 'pdf', title: 'Users and Admin', className: 'd-none' },
+                { extend: 'print', title: 'Users and Admin', className: 'd-none' }
+            ],
+            pageLength: 10,
+            responsive: true,
+            language: {
+                search: "Search users:",
+                lengthMenu: "Show _MENU_ users per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ users",
+                infoEmpty: "No users available",
+                infoFiltered: "(filtered from _MAX_ total users)"
+            }
+        });
+
+        $('#btnCopy').click(() => table.button(0).trigger());
+        $('#btnCSV').click(() => table.button(1).trigger());
+        $('#btnExcel').click(() => table.button(2).trigger());
+        $('#btnPDF').click(() => table.button(3).trigger());
+        $('#btnPrint').click(() => table.button(4).trigger());
+    });
+</script>
+
+<style>
+    :root {
+        --primary: #000000;
+        --primary-hover: #1a1a1a;
+        --secondary: #6b7280;
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-accent: #f1f5f9;
+        --border: #e5e7eb;
+        --border-light: #f3f4f6;
+        --text-primary: #111827;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
+        --success: #10b981;
+        --error: #ef4444;
+        --warning: #f59e0b;
+        --info: #3b82f6;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --radius: 8px;
+        --radius-lg: 12px;
+    }
+
+    .users-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 8px;
+    }
+
+    .page-title {
+        font-size: 32px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+        letter-spacing: -0.025em;
+    }
+
+    .page-subtitle {
+        font-size: 16px;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    .actions-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .actions-group,
+    .export-group {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        border-radius: var(--radius);
+        border: 1px solid;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        border-color: var(--primary-hover);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        border-color: var(--border);
+    }
+
+    .btn-secondary:hover {
+        background: var(--bg-accent);
+        color: var(--text-primary);
+        border-color: var(--text-secondary);
+    }
+
+    .btn-icon {
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    .table-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .users-table thead th {
+        background: var(--bg-accent);
+        color: var(--text-primary);
+        font-weight: 600;
+        padding: 16px 20px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
+
+    .users-table tbody td {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
+
+    .users-table tbody tr:hover {
+        background: var(--bg-accent);
+    }
+
+    .users-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .actions-column {
+        text-align: center;
+        width: 200px;
+    }
+
+    .name-cell {
+        min-width: 200px;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        background: var(--bg-accent);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+    }
+
+    .user-name {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .email-cell {
+        color: var(--text-secondary);
+        min-width: 200px;
+    }
+
+    .type-cell {
+        min-width: 100px;
+    }
+
+    .date-cell {
+        color: var(--text-secondary);
+        min-width: 140px;
+    }
+
+    .user-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: var(--radius);
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .admin-badge {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
+    .user-badge-type {
+        background: #eff6ff;
+        color: #1e40af;
+        border: 1px solid #bfdbfe;
+    }
+
+    .badge-icon {
+        font-size: 11px;
+    }
+
+    .actions-cell {
+        text-align: center;
+    }
+
+    .action-buttons {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius);
+        border: 1px solid;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        font-size: 12px;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .update-btn {
+        background: #f0fdf4;
+        color: var(--success);
+        border-color: #bbf7d0;
+    }
+
+    .update-btn:hover {
+        background: var(--success);
+        color: white;
+        border-color: var(--success);
+    }
+
+    .promote-btn {
+        background: #fffbeb;
+        color: var(--warning);
+        border-color: #fed7aa;
+    }
+
+    .promote-btn:hover {
+        background: var(--warning);
+        color: white;
+        border-color: var(--warning);
+    }
+
+    .demote-btn {
+        background: #eff6ff;
+        color: var(--info);
+        border-color: #bfdbfe;
+    }
+
+    .demote-btn:hover {
+        background: var(--info);
+        color: white;
+        border-color: var(--info);
+    }
+
+    .delete-btn {
+        background: #fef2f2;
+        color: var(--error);
+        border-color: #fecaca;
+    }
+
+    .delete-btn:hover {
+        background: var(--error);
+        color: white;
+        border-color: var(--error);
+    }
+
+    .protection-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: var(--bg-accent);
+        color: var(--text-muted);
+        border-radius: var(--radius);
+        font-size: 12px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 64px 32px;
+    }
+
+    .empty-icon {
+        font-size: 64px;
+        color: var(--text-muted);
+        margin-bottom: 24px;
+    }
+
+    .empty-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 12px 0;
+    }
+
+    .empty-message {
+        font-size: 16px;
+        color: var(--text-secondary);
+        margin: 0 0 32px 0;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* DataTables Customization */
+    .dataTables_wrapper {
+        padding: 20px;
+    }
+
+    .dataTables_filter {
+        margin-bottom: 20px;
+    }
+
+    .dataTables_filter input {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 8px 12px;
+        font-size: 14px;
+        margin-left: 8px;
+    }
+
+    .dataTables_filter input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .dataTables_length select {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 6px 12px;
+        font-size: 14px;
+        margin: 0 8px;
+    }
+
+    .dataTables_info {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    .dataTables_paginate .paginate_button {
+        padding: 8px 12px;
+        margin: 0 2px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .dataTables_paginate .paginate_button:hover {
+        background: var(--bg-accent);
+        color: var(--text-primary);
+        border-color: var(--text-secondary);
+    }
+
+    .dataTables_paginate .paginate_button.current {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .actions-section {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .actions-group,
+        .export-group {
+            justify-content: center;
+        }
+
+        .btn {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .users-table thead th,
+        .users-table tbody td {
+            padding: 12px 8px;
+        }
+
+        .action-buttons {
+            gap: 4px;
+        }
+
+        .action-btn {
+            width: 28px;
+            height: 28px;
+            font-size: 11px;
+        }
+
+        .dataTables_wrapper {
+            padding: 16px;
+        }
+
+        .page-title {
+            font-size: 28px;
+        }
+
+        .page-subtitle {
+            font-size: 15px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .user-info {
+            gap: 8px;
+        }
+
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+        }
+
+        .empty-state {
+            padding: 48px 20px;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+        }
+
+        .empty-title {
+            font-size: 20px;
+        }
+
+        .empty-message {
+            font-size: 14px;
+        }
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        .btn:hover,
+        .action-btn:hover {
+            transform: none;
+        }
+
+        * {
+            transition: none !important;
+        }
+    }
+
+    /* Focus States */
+    .btn:focus,
+    .action-btn:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,510 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance{% endblock %}
+
+{% block content %}
+<div class="attendance-container">
+    <!-- Header Section -->
+    <div class="page-header">
+        <h2 class="page-title">Mark Your Attendance</h2>
+        <p class="page-subtitle">Secure face recognition attendance system</p>
+    </div>
+
+    <!-- Live Time Display -->
+    <div class="time-display">
+        <div class="time-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="time-content">
+            <div class="time-label">Current Time</div>
+            <div id="liveTime" class="live-time">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Mode Selection -->
+    <div class="mode-selection">
+        <button id="checkinBtn" class="mode-btn active" onclick="setMode('checkin')">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Check In</span>
+        </button>
+        <button id="checkoutBtn" class="mode-btn" onclick="setMode('checkout')">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Check Out</span>
+        </button>
+    </div>
+
+    <!-- Camera Section -->
+    <div class="camera-section">
+        <div class="camera-container">
+            <video id="video" autoplay></video>
+            <div class="camera-overlay">
+                <div class="scan-line"></div>
+            </div>
+        </div>
+        
+        <!-- Capture Button -->
+        <button onclick="capture()" class="capture-btn" id="captureBtn">
+            <i class="fas fa-camera"></i>
+            <span>Capture & Submit</span>
+        </button>
+    </div>
+
+    <!-- Status Section -->
+    <div class="status-section">
+        <!-- Loading Spinner -->
+        <div id="loading" class="loading-state">
+            <div class="spinner"></div>
+            <span>Processing, please wait...</span>
+        </div>
+
+        <!-- Result Message -->
+        <div id="result-msg" class="result-message"></div>
+    </div>
+
+    <!-- Hidden canvas for image processing -->
+    <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+</div>
+
+<style>
+    .attendance-container {
+        max-width: 500px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    /* Header */
+    .page-header {
+        text-align: center;
+        margin-bottom: 8px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+        letter-spacing: -0.025em;
+    }
+
+    .page-subtitle {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    /* Time Display */
+    .time-display {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .time-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--primary);
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+    }
+
+    .time-content {
+        flex: 1;
+    }
+
+    .time-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .live-time {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Mode Selection */
+    .mode-selection {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .mode-btn {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .mode-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .mode-btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+        box-shadow: var(--shadow-md);
+    }
+
+    .mode-btn.active:hover {
+        background: var(--primary-hover);
+        border-color: var(--primary-hover);
+        color: white;
+    }
+
+    .mode-btn i {
+        font-size: 16px;
+    }
+
+    /* Camera Section */
+    .camera-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .camera-container {
+        position: relative;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+        border: 2px solid var(--border);
+    }
+
+    #video {
+        width: 320px;
+        height: 240px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .camera-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        border-radius: var(--radius-lg);
+    }
+
+    .scan-line {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        animation: scan 2s ease-in-out infinite;
+    }
+
+    @keyframes scan {
+        0% { transform: translateY(0); opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { transform: translateY(236px); opacity: 1; }
+    }
+
+    /* Capture Button */
+    .capture-btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius);
+        padding: 14px 28px;
+        font-size: 15px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-md);
+    }
+
+    .capture-btn:hover:not(:disabled) {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .capture-btn:disabled {
+        background: var(--secondary);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .capture-btn i {
+        font-size: 16px;
+    }
+
+    /* Status Section */
+    .status-section {
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .loading-state {
+        display: none;
+        align-items: center;
+        gap: 12px;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .loading-state.show {
+        display: flex;
+    }
+
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border);
+        border-top: 2px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .result-message {
+        font-size: 15px;
+        font-weight: 500;
+        text-align: center;
+        padding: 12px 16px;
+        border-radius: var(--radius);
+        display: none;
+    }
+
+    .result-message.show {
+        display: block;
+    }
+
+    .result-message.success {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+    }
+
+    .result-message.error {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+    }
+
+    .result-message.warning {
+        background: #fffbeb;
+        border: 1px solid #fed7aa;
+        color: #92400e;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 480px) {
+        .attendance-container {
+            gap: 20px;
+        }
+
+        #video {
+            width: 280px;
+            height: 210px;
+        }
+
+        .time-display {
+            padding: 16px;
+        }
+
+        .time-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+        }
+
+        .live-time {
+            font-size: 16px;
+        }
+
+        .mode-selection {
+            gap: 8px;
+        }
+
+        .mode-btn {
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .capture-btn {
+            padding: 12px 24px;
+            font-size: 14px;
+        }
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        .scan-line,
+        .spinner {
+            animation: none;
+        }
+    }
+</style>
+
+<script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const resultMsg = document.getElementById("result-msg");
+    const checkinBtn = document.getElementById("checkinBtn");
+    const checkoutBtn = document.getElementById("checkoutBtn");
+    const loading = document.getElementById("loading");
+    const captureBtn = document.getElementById("captureBtn");
+
+    let selectedMode = "checkin"; // Default mode
+
+    function setMode(mode) {
+        selectedMode = mode;
+
+        // Toggle active class
+        if (mode === "checkin") {
+            checkinBtn.classList.add("active");
+            checkoutBtn.classList.remove("active");
+        } else {
+            checkoutBtn.classList.add("active");
+            checkinBtn.classList.remove("active");
+        }
+    }
+
+    // Initialize camera
+    navigator.mediaDevices.getUserMedia({ 
+        video: { 
+            width: 320, 
+            height: 240,
+            facingMode: "user"
+        } 
+    })
+    .then(stream => {
+        video.srcObject = stream;
+    })
+    .catch(err => {
+        console.error("Camera error:", err);
+        showResult("Camera access denied. Please allow camera access to use this feature.", "error");
+    });
+
+    function capture() {
+        captureBtn.disabled = true;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Hide previous results and show loading
+        hideResult();
+        showLoading();
+
+        canvas.toBlob(blob => {
+            if (!blob) {
+                hideLoading();
+                captureBtn.disabled = false;
+                showResult("Failed to capture image. Please try again.", "error");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("image", blob, "face.jpg");
+            formData.append("action", selectedMode);
+
+            fetch("/attendance", {
+                method: "POST",
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                hideLoading();
+                captureBtn.disabled = false;
+                
+                const type = data.status === "success" ? "success" : "error";
+                showResult(data.message, type);
+            })
+            .catch(err => {
+                console.error("Submission error:", err);
+                hideLoading();
+                captureBtn.disabled = false;
+                showResult("Error submitting image. Please try again.", "error");
+            });
+        }, "image/jpeg");
+    }
+
+    function showLoading() {
+        loading.classList.add("show");
+    }
+
+    function hideLoading() {
+        loading.classList.remove("show");
+    }
+
+    function showResult(message, type) {
+        resultMsg.textContent = message;
+        resultMsg.className = `result-message show ${type}`;
+    }
+
+    function hideResult() {
+        resultMsg.classList.remove("show");
+    }
+
+    // Time update function
+    function updateTime() {
+        const now = new Date();
+        const options = {
+            weekday: 'short', 
+            year: 'numeric', 
+            month: 'short',
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit',
+            hour12: true
+        };
+        document.getElementById("liveTime").textContent = now.toLocaleString('en-US', options);
+    }
+
+    // Initialize time and update every second
+    setInterval(updateTime, 1000);
+    updateTime();
+</script>
+
+{% endblock %}

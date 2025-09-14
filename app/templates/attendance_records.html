@@ -1,0 +1,860 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Records{% endblock %}
+
+{% block content %}
+<div class="records-container">
+    <!-- Page Header -->
+    <div class="records-header">
+        <h1 class="page-title">Attendance Records</h1>
+        <p class="page-subtitle">View and manage employee attendance records</p>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+        <div class="primary-actions">
+            <a href="/attendance" class="btn btn-primary">
+                <i class="fas fa-camera btn-icon"></i>
+                <span>Mark Attendance</span>
+            </a>
+        </div>
+        
+        <div class="secondary-actions">
+            <div class="export-group">
+                <button id="btnCopy" class="btn btn-secondary">
+                    <i class="fas fa-copy btn-icon"></i>
+                    <span>Copy</span>
+                </button>
+                <button id="btnCSV" class="btn btn-secondary">
+                    <i class="fas fa-file-csv btn-icon"></i>
+                    <span>CSV</span>
+                </button>
+                <button id="btnExcel" class="btn btn-secondary">
+                    <i class="fas fa-file-excel btn-icon"></i>
+                    <span>Excel</span>
+                </button>
+                <button id="btnPDF" class="btn btn-secondary">
+                    <i class="fas fa-file-pdf btn-icon"></i>
+                    <span>PDF</span>
+                </button>
+                <button id="btnPrint" class="btn btn-secondary">
+                    <i class="fas fa-print btn-icon"></i>
+                    <span>Print</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+
+    <div class="table-container">
+        {% if records %}
+        <div class="data-table-wrapper">
+            <table id="attendanceTable" class="professional-table" style="width:100%">
+                <thead>
+                    <tr>
+                        <th class="select-column">
+                            <input type="checkbox" id="selectAll" class="table-checkbox">
+                        </th>
+                        <th>Employee Name</th>
+                        <th>Email</th>
+                        <th>Date</th>
+                        <th>Check-In</th>
+                        <th>Check-Out</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="record-checkbox table-checkbox" 
+                                   data-name="{{ record.name }}" data-date="{{ record.date }}">
+                        </td>
+                        <td class="employee-name">{{ record.name }}</td>
+                        <td class="employee-email">{{ record.email }}</td>
+                        <td class="attendance-date">{{ record.date }}</td>
+                        
+                        <!-- Check-in -->
+                        <td class="checkin-time">
+                            {% if record.checkin %}
+                                <div class="time-entry">
+                                    <span class="time-value">{{ record.checkin }}</span>
+                                    {% if record.late %}
+                                        <span class="status-badge status-late">Late</span>
+                                    {% else %}
+                                        <span class="status-badge status-ontime">On Time</span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="no-entry">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Check-out -->
+                        <td class="checkout-time">
+                            {% if record.checkout %}
+                                <span class="time-value">{{ record.checkout }}</span>
+                            {% else %}
+                                <span class="no-entry">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Overall Status -->
+                        <td class="attendance-status">
+                            {% if record.checkin and record.checkout %}
+                                <span class="status-badge status-complete">Complete</span>
+                            {% elif record.checkin %}
+                                <span class="status-badge status-partial">In Progress</span>
+                            {% else %}
+                                <span class="status-badge status-absent">Absent</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div id="bulkActions" class="bulk-actions" style="display: none;">
+            <div class="bulk-info">
+                <span id="selectedCount">0</span> record(s) selected
+            </div>
+            <button id="bulkDeleteBtn" class="btn btn-danger">
+                <i class="fas fa-trash-alt btn-icon"></i>
+                <span>Delete Selected Records</span>
+            </button>
+        </div>
+
+        <!-- Management Actions -->
+        <div class="management-section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-cogs section-icon"></i>
+                    Record Management
+                </h3>
+                <p class="section-subtitle">Use these tools to manage attendance records in bulk</p>
+            </div>
+            
+            <div class="management-grid">
+                <div class="management-card">
+                    <form action="/admin/delete-by-date" method="post" class="management-form" id="formDeleteByDate">
+                        <div class="form-group">
+                            <label for="deleteDate" class="form-label">Delete by Date</label>
+                            <input type="date" name="date" id="deleteDate" required class="form-control">
+                        </div>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-calendar-times btn-icon"></i>
+                            <span>Delete Date</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div class="management-card">
+                    <form action="/admin/delete-by-name" method="post" class="management-form" id="formDeleteByName">
+                        <div class="form-group">
+                            <label for="deleteName" class="form-label">Delete by Employee</label>
+                            <input type="text" name="name" id="deleteName" placeholder="Enter employee name" required class="form-control">
+                        </div>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-user-times btn-icon"></i>
+                            <span>Delete Employee Records</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div class="management-card danger-card">
+                    <form action="/admin/delete-all" method="post" class="management-form" id="formDeleteAll">
+                        <div class="form-group">
+                            <label class="form-label danger-label">Danger Zone</label>
+                            <p class="danger-warning">This action will permanently delete all attendance records and cannot be undone.</p>
+                        </div>
+                        <button type="submit" class="btn btn-danger-solid">
+                            <i class="fas fa-exclamation-triangle btn-icon"></i>
+                            <span>Delete All Records</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <h3>No Attendance Records Found</h3>
+            <p>Start by marking attendance to see records appear here.</p>
+            <a href="/attendance" class="btn btn-primary">
+                <i class="fas fa-camera btn-icon"></i>
+                <span>Mark Attendance</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+<script>
+    let table;
+
+    $(document).ready(function () {
+        table = $('#attendanceTable').DataTable({
+            dom: 'Bfrtip',
+            buttons: [
+                { extend: 'copy', title: 'Attendance Records', className: 'd-none' },
+                { extend: 'csv', title: 'Attendance Records', className: 'd-none' },
+                { extend: 'excel', title: 'Attendance Records', className: 'd-none' },
+                { extend: 'pdf', title: 'Attendance Records', className: 'd-none' },
+                { extend: 'print', title: 'Attendance Records', className: 'd-none' }
+            ],
+            pageLength: 10,
+            responsive: true,
+            language: {
+                search: "Search records:",
+                lengthMenu: "Show _MENU_ records per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ records",
+                emptyTable: "No attendance records found",
+                zeroRecords: "No matching records found"
+            },
+            order: [[3, 'desc']] // Sort by date descending
+        });
+
+        // Export button handlers
+        $('#btnCopy').click(() => table.button(0).trigger());
+        $('#btnCSV').click(() => table.button(1).trigger());
+        $('#btnExcel').click(() => table.button(2).trigger());
+        $('#btnPDF').click(() => table.button(3).trigger());
+        $('#btnPrint').click(() => table.button(4).trigger());
+
+        // Select All functionality
+        $('#selectAll').change(function() {
+            $('.record-checkbox').prop('checked', this.checked);
+            updateBulkActions();
+        });
+
+        // Individual checkbox change
+        $(document).on('change', '.record-checkbox', function() {
+            updateSelectAllState();
+            updateBulkActions();
+        });
+
+        function updateSelectAllState() {
+            const totalCheckboxes = $('.record-checkbox').length;
+            const checkedCheckboxes = $('.record-checkbox:checked').length;
+            $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+        }
+
+        function updateBulkActions() {
+            const checkedCount = $('.record-checkbox:checked').length;
+            $('#selectedCount').text(checkedCount);
+            $('#bulkActions').toggle(checkedCount > 0);
+        }
+
+        // Bulk delete functionality
+        $('#bulkDeleteBtn').click(function() {
+            const checkedBoxes = $('.record-checkbox:checked');
+            if (checkedBoxes.length === 0) return;
+            
+            if (confirm(`Are you sure you want to delete ${checkedBoxes.length} selected record(s)? This action cannot be undone.`)) {
+                const recordsToDelete = [];
+                checkedBoxes.each(function() {
+                    recordsToDelete.push({
+                        name: $(this).data('name'),
+                        date: $(this).data('date')
+                    });
+                });
+                
+                // Send delete request
+                fetch('/admin/delete-selected-records', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({records: recordsToDelete})
+                }).then(() => location.reload());
+            }
+        });
+
+        // Form confirmations
+        $("#formDeleteAll").submit(function (e) {
+            if (!confirm("⚠️ WARNING: This will permanently delete ALL attendance records. This action cannot be undone. Are you absolutely sure?")) {
+                e.preventDefault();
+            }
+        });
+
+        $("#formDeleteByDate").submit(function (e) {
+            const date = $(this).find('input[name="date"]').val();
+            if (!confirm(`Are you sure you want to delete all attendance records for ${date}? This action cannot be undone.`)) {
+                e.preventDefault();
+            }
+        });
+
+        $("#formDeleteByName").submit(function (e) {
+            const name = $(this).find('input[name="name"]').val();
+            if (!confirm(`Are you sure you want to delete all attendance records for "${name}"? This action cannot be undone.`)) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+
+<style>
+    /* Records Container */
+    .records-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    /* Page Header */
+    .records-header {
+        text-align: center;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .page-title {
+        font-size: 32px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+        letter-spacing: -0.025em;
+    }
+
+    .page-subtitle {
+        font-size: 16px;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    /* Action Bar */
+    .action-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .primary-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .secondary-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .export-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    /* Button Styles - Using consistent base theme styles */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        border-radius: var(--radius);
+        border: 1px solid;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        border-color: var(--primary-hover);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        border-color: var(--border);
+    }
+
+    .btn-secondary:hover {
+        background: var(--bg-accent);
+        color: var(--text-primary);
+        border-color: var(--text-secondary);
+    }
+
+    .btn-warning {
+        background: var(--bg-primary);
+        color: var(--warning);
+        border-color: var(--warning);
+    }
+
+    .btn-warning:hover {
+        background: var(--warning);
+        color: white;
+        border-color: var(--warning);
+    }
+
+    .btn-danger {
+        background: var(--bg-primary);
+        color: var(--error);
+        border-color: var(--error);
+    }
+
+    .btn-danger:hover {
+        background: var(--error);
+        color: white;
+        border-color: var(--error);
+    }
+
+    .btn-danger-solid {
+        background: var(--error);
+        color: white;
+        border-color: var(--error);
+    }
+
+    .btn-danger-solid:hover {
+        background: #dc2626;
+        color: white;
+        border-color: #dc2626;
+    }
+
+    .btn-icon {
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    /* Table Container */
+    .table-container {
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .data-table-wrapper {
+        overflow-x: auto;
+    }
+
+    /* Professional Table */
+    .professional-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .professional-table thead th {
+        background-color: var(--bg-accent);
+        color: var(--text-primary);
+        font-weight: 600;
+        padding: 16px 12px;
+        border-bottom: 2px solid var(--border);
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .professional-table tbody td {
+        padding: 14px 12px;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
+
+    .professional-table tbody tr:hover {
+        background-color: var(--bg-accent);
+    }
+
+    .select-column {
+        width: 40px;
+        text-align: center;
+    }
+
+    .table-checkbox {
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .table-checkbox:checked {
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .employee-name {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .employee-email {
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
+    .attendance-date {
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+        font-size: 13px;
+        color: var(--text-primary);
+    }
+
+    .time-entry {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .time-value {
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+        font-weight: 500;
+        color: var(--text-primary);
+        font-size: 13px;
+    }
+
+    .no-entry {
+        color: var(--text-muted);
+        font-style: italic;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        line-height: 1;
+    }
+
+    .status-ontime {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .status-late {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-complete {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+
+    .status-partial {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-absent {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    /* Bulk Actions */
+    .bulk-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        background-color: var(--bg-accent);
+        border-top: 1px solid var(--border-light);
+    }
+
+    .bulk-info {
+        font-size: 14px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    /* Management Section */
+    .management-section {
+        margin-top: 32px;
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        padding: 32px;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .section-header {
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+    }
+
+    .section-icon {
+        font-size: 16px;
+        color: var(--primary);
+        flex-shrink: 0;
+    }
+
+    .section-subtitle {
+        color: var(--text-secondary);
+        margin: 0;
+        font-size: 15px;
+    }
+
+    .management-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .management-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .management-card.danger-card {
+        border-color: var(--error);
+        background: #fefefe;
+    }
+
+    .management-form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin: 0;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        font-size: 14px;
+    }
+
+    .form-label.danger-label {
+        color: var(--error);
+        font-weight: 600;
+    }
+
+    .form-control {
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 14px;
+        color: var(--text-primary);
+        background: var(--bg-primary);
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .danger-warning {
+        color: var(--error);
+        font-size: 12px;
+        margin: 0;
+        font-style: italic;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 64px 32px;
+        color: var(--text-secondary);
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: 24px;
+    }
+
+    .empty-state h3 {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 12px 0;
+    }
+
+    .empty-state p {
+        font-size: 16px;
+        margin: 0 0 24px 0;
+        color: var(--text-secondary);
+    }
+
+    /* DataTables Customization */
+    .dataTables_wrapper .dataTables_filter {
+        margin-bottom: 16px;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .dataTables_wrapper .dataTables_length select {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 6px 8px;
+        font-size: 14px;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 6px 12px;
+        margin: 0 2px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--text-secondary) !important;
+        background: var(--bg-primary) !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: var(--bg-accent) !important;
+        border-color: var(--text-secondary);
+        color: var(--text-primary) !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: var(--primary) !important;
+        border-color: var(--primary);
+        color: white !important;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .action-bar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+
+        .primary-actions,
+        .secondary-actions {
+            justify-content: center;
+        }
+
+        .export-group {
+            justify-content: center;
+        }
+
+        .btn {
+            font-size: 13px;
+            padding: 10px 16px;
+        }
+
+        .management-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .management-section {
+            padding: 24px;
+        }
+
+        .bulk-actions {
+            flex-direction: column;
+            gap: 12px;
+            text-align: center;
+        }
+
+        .page-title {
+            font-size: 28px;
+        }
+
+        .section-title {
+            font-size: 18px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .records-container {
+            gap: 20px;
+        }
+
+        .management-section {
+            padding: 20px;
+        }
+
+        .empty-state {
+            padding: 48px 16px;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+        }
+
+        .page-title {
+            font-size: 24px;
+        }
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        .btn:hover {
+            transform: none;
+        }
+
+        .form-control,
+        .btn {
+            transition: none;
+        }
+    }
+
+    /* Focus States */
+    .btn:focus,
+    .form-control:focus,
+    .table-checkbox:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
+</style>
+{% endblock %}

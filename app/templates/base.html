@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Employee Attendance System{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link href="/static/css/styles.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/static/immigration.png">
+    
+    <style>
+        :root {
+            --primary: #000000;
+            --primary-hover: #1a1a1a;
+            --secondary: #6b7280;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-accent: #f1f5f9;
+            --border: #e5e7eb;
+            --border-light: #f3f4f6;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius: 8px;
+            --radius-lg: 12px;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: var(--text-primary);
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* Background Pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(0, 0, 0, 0.02) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.015) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Professional Navbar */
+        .custom-navbar {
+            background-color: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            padding: 0;
+            min-height: 60px;
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--text-primary) !important;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar-brand:hover {
+            color: var(--primary) !important;
+        }
+
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        /* Navigation Buttons */
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            border-radius: var(--radius);
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            margin: 0 4px;
+            white-space: nowrap;
+        }
+
+        .nav-btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .nav-btn-primary:hover {
+            background-color: var(--primary-hover);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-btn-secondary {
+            background-color: transparent;
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+
+        .nav-btn-secondary:hover {
+            background-color: var(--bg-accent);
+            color: var(--text-primary);
+            border-color: var(--border);
+        }
+
+        .nav-btn-danger {
+            background-color: var(--error);
+            color: white;
+        }
+
+        .nav-btn-danger:hover {
+            background-color: #dc2626;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-icon {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        /* Main Content */
+        main.container {
+            background-color: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            padding: 32px;
+            margin-top: 24px;
+            margin-bottom: 24px;
+            max-width: 1200px;
+        }
+
+        /* Alert Styling */
+        .alert {
+            border-radius: var(--radius);
+            border: 1px solid;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .alert-danger {
+            background-color: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+
+        .alert-success {
+            background-color: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+
+        .alert-warning {
+            background-color: #fffbeb;
+            border-color: #fed7aa;
+            color: #92400e;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .alert-message {
+            margin: 0 0 16px 0;
+            font-size: 14px;
+        }
+
+        .alert-icon {
+            font-size: 16px;
+            margin-top: 2px;
+        }
+
+        /* Alert Button */
+        .btn-alert {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            border-radius: var(--radius);
+            background-color: white;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            transition: all 0.2s ease;
+        }
+
+        .btn-alert:hover {
+            background-color: var(--primary);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Professional Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        h1 { font-size: 28px; }
+        h2 { font-size: 24px; }
+        h3 { font-size: 20px; }
+        h4 { font-size: 18px; }
+        h5 { font-size: 16px; }
+        h6 { font-size: 14px; }
+
+        p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-size: 15px;
+        }
+
+        /* Table Styles */
+        .table {
+            border-collapse: collapse;
+            margin-top: 1rem;
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .table th {
+            background-color: var(--bg-accent);
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+
+        .table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 14px;
+        }
+
+        .table tbody tr:hover {
+            background-color: var(--bg-accent);
+        }
+
+        /* Forms */
+        .form-label {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .form-control {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 12px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+            outline: none;
+        }
+
+        /* Buttons */
+        .btn {
+            font-weight: 500;
+            border-radius: var(--radius);
+            padding: 10px 20px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Cards */
+        .card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-header {
+            background-color: var(--bg-accent);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 20px;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 991.98px) {
+            .navbar-nav {
+                padding: 16px 0;
+                gap: 8px;
+            }
+            
+            .nav-btn {
+                justify-content: flex-start;
+                width: 100%;
+                margin: 4px 0;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            main.container {
+                padding: 20px;
+                margin: 16px;
+                border-radius: var(--radius);
+            }
+            
+            .navbar-brand {
+                font-size: 16px;
+            }
+
+            .brand-icon {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+            
+            .navbar-toggler {
+                border: 1px solid var(--border);
+                padding: 6px 8px;
+                border-radius: var(--radius);
+            }
+
+            .navbar-toggler:focus {
+                box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.1);
+            }
+        }
+
+        @media (max-width: 480px) {
+            main.container {
+                margin: 12px;
+                padding: 16px;
+            }
+
+            .alert {
+                padding: 12px 16px;
+            }
+        }
+
+        /* Focus States */
+        .nav-btn:focus,
+        .btn-alert:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Loading States */
+        .nav-btn:disabled,
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        @media (prefers-contrast: high) {
+            .form-control,
+            .btn,
+            .nav-btn {
+                border-width: 2px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Professional Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light custom-navbar">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <div class="brand-icon">
+                    <i class="fas fa-user-clock"></i>
+                </div>
+                Attendance System
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <div class="navbar-nav ms-auto d-flex align-items-center">
+                    <!-- Show different menus based on user type -->
+                    {% if request.cookies.get("session_id") %}
+                        <!-- Check user type and show appropriate navigation -->
+                        {% if user_type == "Admin" %}
+                            <!-- Admin Navigation - Full Access -->
+                            <a class="nav-btn nav-btn-secondary" href="/admin">
+                                <i class="fas fa-tachometer-alt nav-icon"></i>
+                                Dashboard
+                            </a>
+                            <a class="nav-btn nav-btn-secondary" href="/admin/register">
+                                <i class="fas fa-user-plus nav-icon"></i>
+                                Register
+                            </a>
+                            <a class="nav-btn nav-btn-primary" href="/attendance">
+                                <i class="fas fa-camera nav-icon"></i>
+                                Mark Attendance
+                            </a>
+                            <a class="nav-btn nav-btn-secondary" href="/admin/attendance-records">
+                                <i class="fas fa-history nav-icon"></i>
+                                Records
+                            </a>
+                            <a class="nav-btn nav-btn-secondary" href="/admin/handle-users">
+                                <i class="fas fa-users-cog nav-icon"></i>
+                                Manage Users
+                            </a>
+                        {% elif user_type == "User" %}
+                            <!-- Regular User Navigation - Limited Access -->
+                            <a class="nav-btn nav-btn-secondary" href="/user-dashboard">
+                                <i class="fas fa-tachometer-alt nav-icon"></i>
+                                Dashboard
+                            </a>
+                            <a class="nav-btn nav-btn-secondary" href="/admin/register">
+                                <i class="fas fa-user-plus nav-icon"></i>
+                                Register Employee
+                            </a>
+                            <a class="nav-btn nav-btn-primary" href="/attendance">
+                                <i class="fas fa-camera nav-icon"></i>
+                                Mark Attendance
+                            </a>
+                        {% elif user_type == "Employee" %}
+                            <!-- Employee Navigation - Only Attendance -->
+                            <a class="nav-btn nav-btn-primary" href="/attendance">
+                                <i class="fas fa-camera nav-icon"></i>
+                                Mark Attendance
+                            </a>
+                        {% endif %}
+                        <a class="nav-btn nav-btn-danger" href="/logout">
+                            <i class="fas fa-sign-out-alt nav-icon"></i>
+                            Logout
+                        </a>
+                    {% else %}
+                        <!-- Not logged in -->
+                        <a class="nav-btn nav-btn-primary" href="/login">
+                            <i class="fas fa-sign-in-alt nav-icon"></i>
+                            Login
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="container">
+        {% if error %}
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle alert-icon"></i>
+            <div class="alert-content">
+                <div class="alert-title">Error</div>
+                <div class="alert-message">{{ error }}</div>
+                <a href="/admin" class="btn-alert">
+                    <i class="fas fa-arrow-left"></i>
+                    Go to Dashboard
+                </a>
+            </div>
+        </div>
+        {% else %}
+        {% block content %}{% endblock %}
+        {% endif %}
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+
+{% block title %}Update Employee{% endblock %}
+
+{% block content %}
+<div class="registration-container">
+    <div class="registration-header">
+        <h2 class="page-title">Update Employee</h2>
+        <p class="page-subtitle">Edit employee information and save changes</p>
+    </div>
+
+    <div class="registration-form-container">
+        <form id="update-form" method="post" action="/admin/update/{{ user._id }}">
+            <div class="form-section">
+                <h3 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24">
+                        <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                    </svg>
+                    Employee Information
+                </h3>
+                
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" value="{{ user.name }}" required placeholder="Enter employee's full name">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" value="{{ user.email }}" required placeholder="Enter employee's email address">
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="update-btn">
+                        <svg class="btn-icon" viewBox="0 0 24 24">
+                            <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
+                        </svg>
+                        Update Employee
+                    </button>
+                    
+                    <button type="button" id="cancel-btn" onclick="window.location.href='/admin'">
+                        <svg class="btn-icon" viewBox="0 0 24 24">
+                            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                        </svg>
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>Updating employee...</p>
+    </div>
+</div>
+
+<style>
+
+    .form-group select {
+        width: 100%;
+        padding: 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: white;
+        box-sizing: border-box;
+        cursor: pointer;
+    }
+
+    .form-group select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group select.valid {
+        border-color: #28a745;
+        box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+    }
+
+    .form-group select.invalid {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    }
+    .registration-container {
+        max-width: 800px;
+        margin: 0 auto;
+        position: relative;
+    }
+
+    .registration-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .page-title {
+        font-size: 2.5rem;
+        color: #333;
+        margin-bottom: 10px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+    }
+
+    .page-subtitle {
+        font-size: 1.1rem;
+        color: #666;
+        margin: 0;
+    }
+
+    .registration-form-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .form-section {
+        margin-bottom: 40px;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.3rem;
+        color: #333;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .section-icon {
+        width: 24px;
+        height: 24px;
+        fill: #667eea;
+    }
+
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: white;
+        box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+
+    .form-actions button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px 24px;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 180px;
+        justify-content: center;
+    }
+
+    #update-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    #update-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    #cancel-btn {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        color: white;
+    }
+
+    #cancel-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+    }
+
+    .btn-icon {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        color: white;
+    }
+
+    .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255,255,255,0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .registration-form-container {
+            padding: 20px;
+        }
+
+        .form-actions {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .form-actions button {
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .page-title {
+            font-size: 2rem;
+        }
+    }
+
+    /* Input validation states */
+    .form-group input.valid {
+        border-color: #28a745;
+        box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+    }
+
+    .form-group input.invalid {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    }
+
+    /* Success message styling */
+    .success-message {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: 600;
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+    }
+    h2 {
+        font-family: 'Raleway', sans-serif;
+        font-weight: 700;
+        font-size: 38px;
+        letter-spacing: -1px;
+        color: #fff;
+        margin-bottom: 20px;
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        background: linear-gradient(45deg, #843beb, #c568e6);
+        background-size: 400% 400%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: gradientShift 4s ease infinite;
+    }
+
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    h2::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+        background-size: 400% 400%;
+        border-radius: 12px;
+        z-index: -1;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        animation: gradientShift 4s ease infinite;
+        filter: blur(8px);
+    }
+
+    h2:hover {
+        /* Removed transform and letter-spacing */
+         text-shadow: 0 8px 16px rgba(0,0,0,0.4);  /* Optional - keeps glow effect */
+    }
+
+    h2:hover::before {
+        opacity: 0.3;
+    }
+
+    h2::after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%) scaleX(0);
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+        border-radius: 2px;
+        transition: transform 0.3s ease;
+    }
+
+    h2:hover::after {
+        transform: translateX(-50%) scaleX(1);
+    }
+
+
+
+</style>
+
+<script>
+    const updateForm = document.getElementById("update-form");
+    const loadingOverlay = document.getElementById("loading-overlay");
+    const nameInput = document.getElementById("name");
+    const emailInput = document.getElementById("email");
+
+    // Form validation
+    function validateForm() {
+        let isValid = true;
+        
+        // Validate name
+        if (!nameInput.value.trim()) {
+            nameInput.classList.add('invalid');
+            nameInput.classList.remove('valid');
+            isValid = false;
+        } else {
+            nameInput.classList.add('valid');
+            nameInput.classList.remove('invalid');
+        }
+        
+        // Validate email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailInput.value.trim() || !emailRegex.test(emailInput.value)) {
+            emailInput.classList.add('invalid');
+            emailInput.classList.remove('valid');
+            isValid = false;
+        } else {
+            emailInput.classList.add('valid');
+            emailInput.classList.remove('invalid');
+        }
+        
+        return isValid;
+    }
+
+    // Real-time validation
+    nameInput.addEventListener('input', function() {
+        if (this.value.trim()) {
+            this.classList.add('valid');
+            this.classList.remove('invalid');
+        } else {
+            this.classList.remove('valid');
+            this.classList.add('invalid');
+        }
+    });
+
+    emailInput.addEventListener('input', function() {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (this.value.trim() && emailRegex.test(this.value)) {
+            this.classList.add('valid');
+            this.classList.remove('invalid');
+        } else {
+            this.classList.remove('valid');
+            this.classList.add('invalid');
+        }
+    });
+
+    // Form submission
+    updateForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!validateForm()) {
+            alert("⚠️ Please fill in all required fields correctly.");
+            return;
+        }
+        
+        // Show loading overlay
+        loadingOverlay.style.display = 'flex';
+        
+        // Create FormData and submit
+        const formData = new FormData(updateForm);
+        
+        fetch(updateForm.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            loadingOverlay.style.display = 'none';
+            
+            if (response.ok) {
+                // Success - show success message
+                const successDiv = document.createElement('div');
+                successDiv.className = 'success-message';
+                successDiv.innerHTML = '✅ Employee updated successfully!';
+                
+                const container = document.querySelector('.registration-form-container');
+                container.insertBefore(successDiv, container.firstChild);
+                
+                // Redirect after a short delay
+                setTimeout(() => {
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    } else {
+                        window.location.href = "/admin";
+                    }
+                }, 1500);
+            } else {
+                throw new Error('Update failed');
+            }
+        })
+        .catch(error => {
+            loadingOverlay.style.display = 'none';
+            console.error('Update error:', error);
+            alert("⚠️ Update failed. Please try again.");
+        });
+    });
+
+    // Initialize form validation state
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if fields have initial values and apply validation styling
+        if (nameInput.value.trim()) {
+            nameInput.classList.add('valid');
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (emailInput.value.trim() && emailRegex.test(emailInput.value)) {
+            emailInput.classList.add('valid');
+        }
+    });
+</script>
+{% endblock %}

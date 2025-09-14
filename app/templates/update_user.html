@@ -1,0 +1,647 @@
+{% extends "base.html" %}
+
+{% block title %}Update User/Admin{% endblock %}
+
+{% block content %}
+<div class="update-user-container">
+    <div class="form-header">
+        <h2 class="page-title">Update User/Admin</h2>
+        <p class="page-subtitle">Modify user account details and permissions</p>
+    </div>
+
+    <div class="form-card">
+        {% if msg %}
+        <div class="alert 
+            {% if msg_type == 'success' %}alert-success{% endif %}
+            {% if msg_type == 'error' %}alert-danger{% endif %}
+            {% if msg_type == 'warning' %}alert-warning{% endif %}
+            {% if not msg_type or msg_type == 'info' %}alert-info{% endif %}">
+            <i class="fas 
+                {% if msg_type == 'success' %}fa-check-circle{% endif %}
+                {% if msg_type == 'error' %}fa-exclamation-circle{% endif %}
+                {% if msg_type == 'warning' %}fa-exclamation-triangle{% endif %}
+                {% if not msg_type or msg_type == 'info' %}fa-info-circle{% endif %}
+                alert-icon"></i>
+            <div class="alert-content">
+                <span>{{ msg }}</span>
+            </div>
+            <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/admin/update-user/{{ user._id }}" class="user-form" id="updateForm">
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="fas fa-user section-icon"></i>
+                    Personal Information
+                </h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{{ user.name }}" required minlength="2" 
+                               placeholder="Enter full name">
+                        <div class="error-message">Please enter a valid name (at least 2 characters)</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               value="{{ user.email }}" required 
+                               placeholder="Enter email address">
+                        <div class="error-message">Please enter a valid email address</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3 class="section-title">
+                    <i class="fas fa-shield-alt section-icon"></i>
+                    Account Settings
+                </h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="password-group">
+                            <input type="password" class="form-control" id="password" name="password" 
+                                   value="{{ user.password }}" required minlength="6" 
+                                   placeholder="Enter password">
+                            <button type="button" class="password-toggle" id="togglePassword">
+                                <i class="fas fa-eye" id="toggleIcon"></i>
+                            </button>
+                        </div>
+                        <div class="error-message">Password must be at least 6 characters long</div>
+                        <small class="form-help">Leave current password or enter new one</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="type" class="form-label">User Type</label>
+                        <select class="form-control" id="type" name="type" required>
+                            <option value="">Select User Type</option>
+                            <option value="User" {% if user.type == "User" %}selected{% endif %}>User</option>
+                            <option value="Admin" {% if user.type == "Admin" %}selected{% endif %}>Admin</option>
+                        </select>
+                        <div class="error-message">Please select a user type</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading indicator -->
+            <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Updating user...</p>
+            </div>
+
+            <div class="form-actions">
+                <a href="/admin/handle-users" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left btn-icon"></i>
+                    <span>Cancel</span>
+                </a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="fas fa-save btn-icon"></i>
+                    <span>Update User</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Form validation and submission handling
+    document.getElementById('updateForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Clear previous validation styles
+        this.classList.remove('was-validated');
+        
+        // Get form controls
+        const formControls = this.querySelectorAll('.form-control[required]');
+        let isValid = true;
+        
+        // Validate each field
+        formControls.forEach(control => {
+            const formGroup = control.closest('.form-group');
+            const errorMessage = formGroup.querySelector('.error-message');
+            
+            // Remove previous error states
+            control.classList.remove('error');
+            errorMessage.classList.remove('show');
+            
+            // Check validity
+            if (!control.validity.valid) {
+                control.classList.add('error');
+                errorMessage.classList.add('show');
+                isValid = false;
+            }
+        });
+        
+        if (!isValid) {
+            this.classList.add('was-validated');
+            return;
+        }
+        
+        // Show loading indicator
+        document.getElementById('loadingIndicator').style.display = 'flex';
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin btn-icon"></i><span>Updating...</span>';
+        
+        // Submit form
+        this.submit();
+    });
+
+    // Real-time validation
+    document.querySelectorAll('.form-control[required]').forEach(control => {
+        control.addEventListener('blur', function() {
+            const formGroup = this.closest('.form-group');
+            const errorMessage = formGroup.querySelector('.error-message');
+            
+            if (!this.validity.valid) {
+                this.classList.add('error');
+                errorMessage.classList.add('show');
+            } else {
+                this.classList.remove('error');
+                errorMessage.classList.remove('show');
+            }
+        });
+        
+        control.addEventListener('input', function() {
+            if (this.classList.contains('error') && this.validity.valid) {
+                this.classList.remove('error');
+                const errorMessage = this.closest('.form-group').querySelector('.error-message');
+                errorMessage.classList.remove('show');
+            }
+        });
+    });
+
+    // Password toggle functionality
+    document.getElementById('togglePassword').addEventListener('click', function() {
+        const passwordInput = document.getElementById('password');
+        const toggleIcon = document.getElementById('toggleIcon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+            this.setAttribute('aria-label', 'Hide password');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+            this.setAttribute('aria-label', 'Show password');
+        }
+    });
+
+    // Auto-dismiss alerts after 5 seconds
+    window.addEventListener('DOMContentLoaded', function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            setTimeout(function() {
+                if (alert.parentElement) {
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-10px)';
+                    setTimeout(() => {
+                        if (alert.parentElement) {
+                            alert.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        });
+    });
+</script>
+
+<style>
+    :root {
+        --primary: #000000;
+        --primary-hover: #1a1a1a;
+        --secondary: #6b7280;
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-accent: #f1f5f9;
+        --border: #e5e7eb;
+        --border-light: #f3f4f6;
+        --text-primary: #111827;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
+        --success: #10b981;
+        --error: #ef4444;
+        --warning: #f59e0b;
+        --info: #3b82f6;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --radius: 8px;
+        --radius-lg: 12px;
+    }
+
+    .update-user-container {
+        max-width: 800px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .form-header {
+        text-align: center;
+        margin-bottom: 8px;
+    }
+
+    .page-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+        letter-spacing: -0.025em;
+    }
+
+    .page-subtitle {
+        font-size: 15px;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    .form-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 32px;
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* Alert Styling */
+    .alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        border-radius: var(--radius);
+        border: 1px solid;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .alert.alert-info {
+        background-color: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1e40af;
+    }
+
+    .alert.alert-success {
+        background-color: #f0fdf4;
+        border-color: #bbf7d0;
+        color: #166534;
+    }
+
+    .alert.alert-danger {
+        background-color: #fef2f2;
+        border-color: #fecaca;
+        color: #991b1b;
+    }
+
+    .alert.alert-warning {
+        background-color: #fffbeb;
+        border-color: #fed7aa;
+        color: #92400e;
+    }
+
+    .alert-icon {
+        font-size: 16px;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+
+    .alert-content {
+        flex: 1;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .alert-close {
+        background: none;
+        border: none;
+        color: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        opacity: 0.7;
+    }
+
+    .alert-close:hover {
+        opacity: 1;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    .user-form {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .form-section {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .section-icon {
+        font-size: 16px;
+        color: var(--primary);
+        flex-shrink: 0;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .form-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .form-control {
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 14px;
+        color: var(--text-primary);
+        background: var(--bg-primary);
+        transition: all 0.2s ease;
+    }
+
+    .form-control::placeholder {
+        color: var(--text-muted);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-control.error {
+        border-color: var(--error);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    .password-group {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 12px;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        z-index: 1;
+    }
+
+    .password-toggle:hover {
+        color: var(--text-primary);
+        background: var(--bg-accent);
+    }
+
+    .password-toggle:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
+
+    .error-message {
+        font-size: 12px;
+        color: var(--error);
+        opacity: 0;
+        transform: translateY(-4px);
+        transition: all 0.2s ease;
+        margin-top: -2px;
+    }
+
+    .error-message.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .form-help {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+
+    .loading-indicator {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 20px;
+        margin: 16px 0;
+    }
+
+    .loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--border-light);
+        border-top: 3px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border-light);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        border-radius: var(--radius);
+        border: 1px solid;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: var(--primary-hover);
+        border-color: var(--primary-hover);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        border-color: var(--border);
+    }
+
+    .btn-secondary:hover {
+        background: var(--bg-accent);
+        color: var(--text-primary);
+        border-color: var(--text-secondary);
+    }
+
+    .btn-icon {
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .form-card {
+            padding: 24px 20px;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .form-actions {
+            flex-direction: column-reverse;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .page-title {
+            font-size: 24px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            gap: 8px;
+        }
+
+        .section-icon {
+            font-size: 14px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .form-card {
+            padding: 20px 16px;
+        }
+
+        .update-user-container {
+            gap: 20px;
+        }
+
+        .user-form {
+            gap: 20px;
+        }
+
+        .form-section {
+            gap: 16px;
+        }
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        .btn:hover {
+            transform: none;
+        }
+
+        .form-control,
+        .btn,
+        .alert,
+        .error-message {
+            transition: none;
+        }
+
+        .loading-spinner {
+            animation: none;
+        }
+    }
+
+    /* Focus States */
+    .btn:focus,
+    .form-control:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
+
+    /* Form validation styles */
+    .user-form.was-validated .form-control:invalid {
+        border-color: var(--error);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    .user-form.was-validated .form-control:invalid + .error-message,
+    .user-form.was-validated .password-group .form-control:invalid ~ .error-message {
+        opacity: 1;
+        transform: translateY(0);
+    }
+</style>
+{% endblock %}
