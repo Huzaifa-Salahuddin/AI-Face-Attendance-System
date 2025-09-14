@@ -1,0 +1,1 @@
+https://medium.com/@huzaifaarain424/ai-attendance-manager-with-fastapi-deepface-and-docker-0f081821247b
