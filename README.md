@@ -79,6 +79,7 @@ docker build -t face-app .
 ```
 # Pull the prebuilt image from Docker Hub
 ```bash
+https://hub.docker.com/r/huzaifa212/face-app
 docker pull huzaifa212/face-app
 ```
 # Run the container (port 8000 → 8000)
