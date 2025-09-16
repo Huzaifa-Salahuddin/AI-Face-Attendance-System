@@ -88,7 +88,7 @@ docker run -p 8000:8000 huzaifa212/face-app:latest
 ```
 # if .tar 
 ```bash
-docker load face-app.tar
+docker load -i face-app.tar
 ```
 # Run the container (port 8000 → 8000)
 ```bash
